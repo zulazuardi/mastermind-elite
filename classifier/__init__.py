@@ -3,7 +3,7 @@ class Classifier:
     def __init__(self):
         pass
 
-    def classify(self, df=None):
+    def classify(self, df):
         """
         classify the customer for returning to the platform
         Args:

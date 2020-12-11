@@ -3,7 +3,9 @@ import logging
 import pickle
 import numpy as np
 import pandas as pd
+import warnings
 
+from logger import setup_logging
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
@@ -14,8 +16,12 @@ from imblearn.under_sampling import RandomUnderSampler
 from imblearn.pipeline import Pipeline
 from argparse import ArgumentParser
 
-logger = logging.getLogger(__name__)
+setup_logging(
+    filename="classify"
+)
 
+logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore")
 
 def get_year_month_mapping(filepath):
     """
@@ -214,15 +220,31 @@ def get_aggregate_order_dataset(filepath, is_failed=True):
         reg_data['x'], reg_data['amount_paid'])
     reg_data = reg_data[[
         "customer_id",
-        "slope_{}_order".format(prefix_label),
-        "slope_voucher_amount_{}_order".format(prefix_label),
-        "slope_delivery_fee_{}_order".format(prefix_label),
-        "slope_amount_paid_{}_order".format(prefix_label),
-        "intercept_order_{}_order".format(prefix_label),
-        "intercept_voucher_amount_{}_order".format(prefix_label),
-        "intercept_delivery_fee_{}_order".format(prefix_label),
-        "intercept_amount_paid_{}_order".format(prefix_label)
+        "slope_order",
+        "slope_voucher_amount",
+        "slope_delivery_fee",
+        "slope_amount_paid",
+        "intercept_order",
+        "intercept_voucher_amount",
+        "intercept_delivery_fee",
+        "intercept_amount_paid"
     ]]
+    reg_data = reg_data.rename(columns={
+        "slope_order": "slope_{}_order".format(prefix_label),
+        "slope_voucher_amount":
+            "slope_voucher_amount_{}_order".format(prefix_label),
+        "slope_delivery_fee":
+            "slope_delivery_fee_{}_order".format(prefix_label),
+        "slope_amount_paid":
+            "slope_amount_paid_{}_order".format(prefix_label),
+        "intercept_order": "intercept_order_{}_order".format(prefix_label),
+        "intercept_voucher_amount":
+            "intercept_voucher_amount_{}_order".format(prefix_label),
+        "intercept_delivery_fee":
+            "intercept_delivery_fee_{}_order".format(prefix_label),
+        "intercept_amount_paid":
+            "intercept_amount_paid_{}_order".format(prefix_label)
+    })
     agg_data = agg_data.rename(columns={
         "order_date_count": "number_of_{}_order".format(prefix_label),
         "order_date_max": "last_{}_order".format(prefix_label),
@@ -299,17 +321,53 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         order_filename,
         is_failed=False
     )
+    success_order_data["days_since_last_success_order"] = (
+            pd.to_datetime(
+                "2017-02-28",
+                format="%Y-%m-%d"
+            ) -
+            success_order_data["last_success_order"]
+    ).dt.days
+    success_order_data["days_days_between_first_last_success_order"] = (
+            success_order_data["last_success_order"] -
+            success_order_data["first_success_order"]
+    ).dt.days
+
     failed_order_data = get_aggregate_order_dataset(
         order_filename,
         is_failed=True
     )
+    failed_order_data["days_since_last_failed_order"] = (
+            pd.to_datetime(
+                "2017-02-28",
+                format="%Y-%m-%d"
+            ) -
+            failed_order_data["last_failed_order"]
+    ).dt.days
+    failed_order_data["days_days_between_first_last_failed_order"] = (
+            failed_order_data["last_failed_order"] -
+            failed_order_data["first_failed_order"]
+    ).dt.days
 
     order_data = success_order_data.merge(
         failed_order_data,
         on="customer_id",
         how="outer"
     )
-    order_data = order_data.fillna(999999999)
+
+    order_data[[
+        "days_since_last_success_order",
+        "days_days_between_first_last_success_order",
+        "days_since_last_failed_order",
+        "days_days_between_first_last_failed_order"
+    ]] = order_data[[
+        "days_since_last_success_order",
+        "days_days_between_first_last_success_order",
+        "days_since_last_failed_order",
+        "days_days_between_first_last_failed_order"
+    ]].fillna(999999999)
+
+    order_data = order_data.fillna(0)
 
     label_data = get_label_dataset(
         label_filename
@@ -322,7 +380,6 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         "last_success_order",
         "first_failed_order",
         "last_failed_order",
-        "date_of_reference",
         "is_returning_customer"
     ], axis=1)
     y = dataset[["is_returning_customer"]]
@@ -367,16 +424,19 @@ def grid_search_classify(train_features, test_features, train_labels,
 
     pipeline = Pipeline(steps=steps)
 
-    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=1)
 
     grid_search = GridSearchCV(
         estimator=pipeline,
         param_grid=param_grid,
-        cv=cv
+        cv=cv,
+        scoring="f1",
+        n_jobs=-1,
+        verbose=2
     )
     grid_search.fit(train_features, train_labels)
 
-    best_model = grid_search.best_model
+    best_model = grid_search.best_estimator_
 
     predictions = best_model.predict(test_features)
 
@@ -430,6 +490,9 @@ def main():
 
     max_depths = max_depths.strip('][').split(', ')
     n_estimators = n_estimators.strip('][').split(', ')
+
+    max_depths = [int(i) for i in max_depths]
+    n_estimators = [int(i) for i in n_estimators]
 
     logger.info(
         "Start training the model with imbalance: {}, model_name: {}, "
