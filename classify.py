@@ -23,7 +23,6 @@ setup_logging(
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
 
-
 def get_year_month_mapping(filepath):
     """
     Get mapping table for year-month to integer
