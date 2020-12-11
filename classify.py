@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import warnings
 
+from logger import setup_logging
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
@@ -14,6 +15,10 @@ from imblearn.over_sampling import RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.pipeline import Pipeline
 from argparse import ArgumentParser
+
+setup_logging(
+    filename="classify"
+)
 
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
@@ -350,7 +355,20 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         on="customer_id",
         how="outer"
     )
-    order_data = order_data.fillna(999999999)
+
+    order_data[[
+        "days_since_last_success_order",
+        "days_days_between_first_last_success_order",
+        "days_since_last_failed_order",
+        "days_days_between_first_last_failed_order"
+    ]] = order_data[[
+        "days_since_last_success_order",
+        "days_days_between_first_last_success_order",
+        "days_since_last_failed_order",
+        "days_days_between_first_last_failed_order"
+    ]].fillna(999999999)
+
+    order_data = order_data.fillna(0)
 
     label_data = get_label_dataset(
         label_filename
@@ -412,7 +430,10 @@ def grid_search_classify(train_features, test_features, train_labels,
     grid_search = GridSearchCV(
         estimator=pipeline,
         param_grid=param_grid,
-        cv=cv
+        cv=cv,
+        scoring="f1",
+        n_jobs=-1,
+        verbose=2
     )
     grid_search.fit(train_features, train_labels)
 
@@ -470,6 +491,9 @@ def main():
 
     max_depths = max_depths.strip('][').split(', ')
     n_estimators = n_estimators.strip('][').split(', ')
+
+    max_depths = [int(i) for i in max_depths]
+    n_estimators = [int(i) for i in n_estimators]
 
     logger.info(
         "Start training the model with imbalance: {}, model_name: {}, "

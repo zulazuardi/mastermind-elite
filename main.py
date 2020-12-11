@@ -1,7 +1,6 @@
 import logging
 import os
 
-from config import config
 from logger import setup_logging
 from classifier.classifier import IsReturningCustomerClassifier as Classifier
 
