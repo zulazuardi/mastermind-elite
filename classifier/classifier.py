@@ -39,6 +39,11 @@ class IsReturningCustomerClassifier(Classifier):
         Returns:
             label customer will return or not (1 or 0)
         """
-        model = self.classifier()
+        model = self.classifier
 
         return model.predict(df)
+
+    def feature_important(self):
+        model = self.classifier()
+
+        return model.feature_importances_

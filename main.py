@@ -7,14 +7,12 @@ from logger import setup_logging
 from classifier.classifier import IsReturningCustomerClassifier as Classifier
 
 setup_logging(
-    level=config.log_level,
-    directory=config.log_dir,
     filename="main"
 )
 logger = logging.getLogger(__name__)
 
 
-def get_top20_feature_importance(model):
+def get_feature_importance(model):
     """
         Get feature importances
         Args:
@@ -23,16 +21,9 @@ def get_top20_feature_importance(model):
         Returns:
             feature importances
     """
-    importances = model.feature_importances_
-    indices = np.argsort(importances)[::-1]
+    importances = model.feature_important
 
-    result = []
-
-    for f in range(21):
-        result.append(
-            {"feature": indices[f], "score": importances[indices[f]]}
-        )
-    return result
+    return importances
 
 
 def get_classification_report(actual, predictions):
@@ -60,8 +51,10 @@ def get_test_data(filename):
         Returns:
             features, label  : dataframe
     """
-    features = pd.read_csv("data/" + filename + "features.csv", header=True)
-    label = pd.read_csv("data/" + filename + "label.csv", header=True)
+    features = pd.read_csv(
+        "data/" + filename + "_feature.csv", index_col=0
+    )
+    label = pd.read_csv("data/" + filename + "_label.csv", index_col=0)
     return features, label
 
 
@@ -70,7 +63,7 @@ def main():
 
     logger.debug(
         "top 20 feature importances: {}".format(
-            get_top20_feature_importance(classifier)
+            get_feature_importance(classifier)
         )
     )
 

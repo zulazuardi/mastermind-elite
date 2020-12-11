@@ -24,3 +24,7 @@ log folder after you executed the model.
 _classifier.py_ is class for load the saved model and to be used in the main 
 function
 
+## 3. Evaluate the model
+_main.py_ is the main function to evaluate the model. the output of the script
+is confusion matrix and feature important of the model.\
+`python main.py`
