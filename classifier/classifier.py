@@ -13,8 +13,6 @@ class IsReturningCustomerClassifier(Classifier):
         """
         Set and return the classifier given a filename
         Args:
-            data_dir (str, optional): Directory where the file persists. If
-                None, use self.data_dir
             filename (str, optional): Filename of the classifier. If None, use
                 self.classifier_filename
         Returns:
@@ -35,7 +33,7 @@ class IsReturningCustomerClassifier(Classifier):
 
     def classify(self, df=None):
         """
-        Classify an article.
+        Classify the customer.
         Args:
             df (dataframe): dataframe contains user features
         Returns:

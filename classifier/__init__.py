@@ -5,7 +5,7 @@ class Classifier:
 
     def classify(self, df=None):
         """
-        Geo-classify an article.
+        classify the customer for returning to the platform
         Args:
             df (dataframe)
         Returns:
