@@ -23,6 +23,7 @@ setup_logging(
 logger = logging.getLogger(__name__)
 warnings.filterwarnings("ignore")
 
+
 def get_year_month_mapping(filepath):
     """
     Get mapping table for year-month to integer
@@ -467,6 +468,20 @@ def save_model(model, model_name):
     pickle.dump(model, open(filename, 'wb'))
 
 
+def save_test_data(df_feature, df_label, filename):
+    """
+        Save test data into csv
+        Args:
+            df  : test dataframe
+            filename  (str): The dataset name, will be saved under data/
+
+        Returns:
+
+    """
+    df_feature.to_csv("data/" + filename + "_feature.csv", header=True)
+    df_label.to_csv("data/" + filename + "_label.csv", header=True)
+
+
 def main():
     parser = ArgumentParser()
     parser.add_argument("--imbalance", default='oversampling',
@@ -507,6 +522,8 @@ def main():
             "data/machine_learning_challenge_labeled_data.csv.gz",
             0.7
         )
+
+    save_test_data(test_features, test_labels, "test")
 
     model = grid_search_classify(
         train_features,
