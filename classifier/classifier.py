@@ -6,10 +6,10 @@ from classifier import Classifier
 
 
 class IsReturningCustomerClassifier(Classifier):
-    def __init__(self, classifier=None):
-        self.classifier = classifier
+    def __init__(self, model_name):
+        self.classifier = self._load_classifier(model_name)
 
-    def load_classifier(self, filename=None):
+    def _load_classifier(self, filename=None):
         """
         Set and return the classifier given a filename
         Args:
@@ -31,7 +31,7 @@ class IsReturningCustomerClassifier(Classifier):
 
         return self.classifier
 
-    def classify(self, df=None):
+    def classify(self, df):
         """
         Classify the customer.
         Args:
@@ -39,8 +39,6 @@ class IsReturningCustomerClassifier(Classifier):
         Returns:
             label customer will return or not (1 or 0)
         """
-        model = self.load_classifier(
-            "random_forest"
-        )
+        model = self.classifier()
 
         return model.predict(df)

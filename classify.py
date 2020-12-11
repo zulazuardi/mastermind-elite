@@ -3,6 +3,7 @@ import logging
 import pickle
 import numpy as np
 import pandas as pd
+import warnings
 
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
@@ -15,6 +16,7 @@ from imblearn.pipeline import Pipeline
 from argparse import ArgumentParser
 
 logger = logging.getLogger(__name__)
+warnings.filterwarnings("ignore")
 
 
 def get_year_month_mapping(filepath):
@@ -214,15 +216,31 @@ def get_aggregate_order_dataset(filepath, is_failed=True):
         reg_data['x'], reg_data['amount_paid'])
     reg_data = reg_data[[
         "customer_id",
-        "slope_{}_order".format(prefix_label),
-        "slope_voucher_amount_{}_order".format(prefix_label),
-        "slope_delivery_fee_{}_order".format(prefix_label),
-        "slope_amount_paid_{}_order".format(prefix_label),
-        "intercept_order_{}_order".format(prefix_label),
-        "intercept_voucher_amount_{}_order".format(prefix_label),
-        "intercept_delivery_fee_{}_order".format(prefix_label),
-        "intercept_amount_paid_{}_order".format(prefix_label)
+        "slope_order",
+        "slope_voucher_amount",
+        "slope_delivery_fee",
+        "slope_amount_paid",
+        "intercept_order",
+        "intercept_voucher_amount",
+        "intercept_delivery_fee",
+        "intercept_amount_paid"
     ]]
+    reg_data = reg_data.rename(columns={
+        "slope_order": "slope_{}_order".format(prefix_label),
+        "slope_voucher_amount":
+            "slope_voucher_amount_{}_order".format(prefix_label),
+        "slope_delivery_fee":
+            "slope_delivery_fee_{}_order".format(prefix_label),
+        "slope_amount_paid":
+            "slope_amount_paid_{}_order".format(prefix_label),
+        "intercept_order": "intercept_order_{}_order".format(prefix_label),
+        "intercept_voucher_amount":
+            "intercept_voucher_amount_{}_order".format(prefix_label),
+        "intercept_delivery_fee":
+            "intercept_delivery_fee_{}_order".format(prefix_label),
+        "intercept_amount_paid":
+            "intercept_amount_paid_{}_order".format(prefix_label)
+    })
     agg_data = agg_data.rename(columns={
         "order_date_count": "number_of_{}_order".format(prefix_label),
         "order_date_max": "last_{}_order".format(prefix_label),
@@ -299,10 +317,35 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         order_filename,
         is_failed=False
     )
+    success_order_data["date_of_reference"] = pd.to_datetime(
+        "2017-02-28",
+        format="%Y-%m-%d"
+    )
+    success_order_data["days_since_last_success_order"] = (
+            success_order_data["date_of_reference"] -
+            success_order_data["last_success_order"]
+    ).dt.days
+    success_order_data["days_days_between_first_last_success_order"] = (
+            success_order_data["last_success_order"] -
+            success_order_data["first_success_order"]
+    ).dt.days
+
     failed_order_data = get_aggregate_order_dataset(
         order_filename,
         is_failed=True
     )
+    failed_order_data["date_of_reference"] = pd.to_datetime(
+        "2017-02-28",
+        format="%Y-%m-%d"
+    )
+    failed_order_data["days_since_last_failed_order"] = (
+            failed_order_data["date_of_reference"] -
+            failed_order_data["last_failed_order"]
+    ).dt.days
+    failed_order_data["days_days_between_first_last_failed_order"] = (
+            failed_order_data["last_failed_order"] -
+            failed_order_data["first_failed_order"]
+    ).dt.days
 
     order_data = success_order_data.merge(
         failed_order_data,
@@ -367,7 +410,7 @@ def grid_search_classify(train_features, test_features, train_labels,
 
     pipeline = Pipeline(steps=steps)
 
-    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=3, random_state=1)
 
     grid_search = GridSearchCV(
         estimator=pipeline,
@@ -376,7 +419,7 @@ def grid_search_classify(train_features, test_features, train_labels,
     )
     grid_search.fit(train_features, train_labels)
 
-    best_model = grid_search.best_model
+    best_model = grid_search.best_estimator_
 
     predictions = best_model.predict(test_features)
 
