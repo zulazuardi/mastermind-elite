@@ -317,12 +317,11 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         order_filename,
         is_failed=False
     )
-    success_order_data["date_of_reference"] = pd.to_datetime(
-        "2017-02-28",
-        format="%Y-%m-%d"
-    )
     success_order_data["days_since_last_success_order"] = (
-            success_order_data["date_of_reference"] -
+            pd.to_datetime(
+                "2017-02-28",
+                format="%Y-%m-%d"
+            ) -
             success_order_data["last_success_order"]
     ).dt.days
     success_order_data["days_days_between_first_last_success_order"] = (
@@ -334,12 +333,11 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         order_filename,
         is_failed=True
     )
-    failed_order_data["date_of_reference"] = pd.to_datetime(
-        "2017-02-28",
-        format="%Y-%m-%d"
-    )
     failed_order_data["days_since_last_failed_order"] = (
-            failed_order_data["date_of_reference"] -
+            pd.to_datetime(
+                "2017-02-28",
+                format="%Y-%m-%d"
+            ) -
             failed_order_data["last_failed_order"]
     ).dt.days
     failed_order_data["days_days_between_first_last_failed_order"] = (
@@ -365,7 +363,6 @@ def get_train_test_dataset(order_filename, label_filename, train_size=0.7):
         "last_success_order",
         "first_failed_order",
         "last_failed_order",
-        "date_of_reference",
         "is_returning_customer"
     ], axis=1)
     y = dataset[["is_returning_customer"]]
